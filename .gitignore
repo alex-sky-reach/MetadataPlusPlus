@@ -1,0 +1,30 @@
+# Ignore everything by default
+*
+
+# Keep the ignore file
+!.gitignore
+
+# Track repository documentation
+!README.md
+!LICENSE
+!CONTRIBUTING.md
+!ISSUE_TEMPLATE.md
+
+# Track release/build helper scripts
+!Create_Dev_Build.ps1
+!Create_Public_Release.ps1
+
+# Track the plugin source
+!Metadata++/
+!Metadata++/**
+
+# Ignore generated Python/cache/editor artifacts inside the plugin source
+Metadata++/**/__pycache__/
+Metadata++/**/*.pyc
+Metadata++/**/*.pyo
+Metadata++/**/*.log
+Metadata++/**/*.tmp
+Metadata++/**/*.bak
+Metadata++/**/*~
+Metadata++/**/.DS_Store
+Metadata++/**/Thumbs.db
