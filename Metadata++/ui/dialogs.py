@@ -1164,12 +1164,8 @@ class MetadataFetchDialog(QDialog):
                                         word_count = get_word_count_from_epub(epub_path)
                             except Exception:
                                 word_count = None
-<<<<<<< HEAD
-                            reading_time = estimate_reading_time(word_count) if word_count else None
-=======
                             reading_wpm = int(prefs.get('reading_speed_wpm', 200) or 200)
                             reading_time = estimate_reading_time(word_count, wpm=reading_wpm) if word_count else None
->>>>>>> 01d1390 (WIP: recover local worlspace)
                             page_count, page_is_est = get_page_count(mi, word_count=word_count)
                             header = build_stats_header(
                                 page_count=page_count, page_is_estimate=page_is_est,

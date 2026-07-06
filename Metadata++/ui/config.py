@@ -111,10 +111,7 @@ prefs.defaults.update({
     # Default OFF because it changes what actually gets written to the
     # comments field — an opt-in presentation choice, not a bug fix.
     'include_synopsis_stats_header': False,
-<<<<<<< HEAD
-=======
     'reading_speed_wpm': 200,
->>>>>>> 01d1390 (WIP: recover local worlspace)
     'prefer_language':   'en',
     'interface_language': 'en',   # v6.2.26 — plugin UI language (en/it/es/ro)
     'log_level':         'INFO',
@@ -732,8 +729,6 @@ class ConfigWidget(QWidget):
         self.cb_duplicates.setChecked(prefs['detect_duplicates'])
         self.cb_synopsis_header = QCheckBox(tr('cb_synopsis_header'))
         self.cb_synopsis_header.setChecked(prefs['include_synopsis_stats_header'])
-<<<<<<< HEAD
-=======
         self.spin_reading_wpm = QSpinBox()
         self.spin_reading_wpm.setRange(50, 1000)
         self.spin_reading_wpm.setValue(int(prefs.get('reading_speed_wpm', 200) or 200))
@@ -747,7 +742,6 @@ class ConfigWidget(QWidget):
         stats_header_layout.addWidget(QLabel(tr('lbl_reading_speed')))
         stats_header_layout.addWidget(self.spin_reading_wpm)
         stats_header_layout.addStretch()
->>>>>>> 01d1390 (WIP: recover local worlspace)
         self.spin_fuzzy = QSpinBox()
         self.spin_fuzzy.setRange(50, 100)
         self.spin_fuzzy.setValue(prefs['fuzzy_threshold'])
@@ -764,11 +758,7 @@ class ConfigWidget(QWidget):
         meta_form.addRow(self.cb_isbn_repair)
         meta_form.addRow(self.cb_normalize)
         meta_form.addRow(self.cb_duplicates)
-<<<<<<< HEAD
-        meta_form.addRow(self.cb_synopsis_header)
-=======
         meta_form.addRow(self.stats_header_row)
->>>>>>> 01d1390 (WIP: recover local worlspace)
         meta_form.addRow(tr('lbl_fuzzy_threshold'), self.spin_fuzzy)
         meta_form.addRow(tr('lbl_preferred_language'), self.combo_lang)
         opt_layout.addWidget(meta_grp)
@@ -896,10 +886,7 @@ class ConfigWidget(QWidget):
         prefs['normalize_lang']   = self.cb_normalize.isChecked()
         prefs['detect_duplicates']= self.cb_duplicates.isChecked()
         prefs['include_synopsis_stats_header'] = self.cb_synopsis_header.isChecked()
-<<<<<<< HEAD
-=======
         prefs['reading_speed_wpm'] = self.spin_reading_wpm.value()
->>>>>>> 01d1390 (WIP: recover local worlspace)
         prefs['fuzzy_threshold']  = self.spin_fuzzy.value()
         prefs['prefer_language']  = self.combo_lang.currentData()
         prefs['interface_language'] = self.combo_ui_lang.currentData()

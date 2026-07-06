@@ -384,15 +384,12 @@ _STRINGS = {
         'es': 'Anteponer nº de páginas/palabras, tiempo de lectura y etiquetas a la sinopsis',
         'ro': 'Adaugă la început nr. de pagini/cuvinte, timp de citire și etichete la sinopsis',
     },
-<<<<<<< HEAD
-=======
     'lbl_reading_speed': {
         'en': 'Reading speed:',
         'it': 'Velocità di lettura:',
         'es': 'Velocidad de lectura:',
         'ro': 'Viteză de citire:',
     },
->>>>>>> 01d1390 (WIP: recover local worlspace)
     'lbl_fuzzy_threshold': {
         'en': 'Fuzzy match threshold:', 'it': 'Soglia di corrispondenza approssimata:',
         'es': 'Umbral de coincidencia difusa:', 'ro': 'Prag de potrivire aproximativă:',

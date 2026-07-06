@@ -81,15 +81,12 @@ def estimate_reading_time(word_count, wpm=200):
     """Return 'HHh:MMm' for a given word count at `wpm` words/minute."""
     if not word_count:
         return None
-<<<<<<< HEAD
-=======
     try:
         wpm = int(wpm)
     except Exception:
         wpm = 200
     if wpm <= 0:
         wpm = 200
->>>>>>> 01d1390 (WIP: recover local worlspace)
     total_minutes = int(round(word_count / float(wpm)))
     hours, minutes = divmod(total_minutes, 60)
     return '{:02d}h:{:02d}m'.format(hours, minutes)
