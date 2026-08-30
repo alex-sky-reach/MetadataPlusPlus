@@ -115,6 +115,18 @@ prefs.defaults.update({
     'prefer_language':   'en',
     'interface_language': 'en',   # v6.2.26 — plugin UI language (en/it/es/ro)
     'log_level':         'INFO',
+    # ── Default Fields to Apply ───────────────────────────────────────────────
+    'apply_title':       True,
+    'apply_authors':     True,
+    'apply_publisher':   True,
+    'apply_pubdate':     True,
+    'apply_comments':    True,
+    'apply_tags':        True,
+    'apply_rating':      True,
+    'apply_language':    True,
+    'apply_identifiers': True,
+    'apply_cover':       True,
+    'hide_empty_results':False,
     # ── Cover quality & ISBN auto-discovery ───────────────────────────────────
     'probe_cover_sizes':       True,
     'cover_probe_timeout':     8,
@@ -483,7 +495,7 @@ class _PlaywrightSetupDialog(QDialog):
         """Launch installer thread; streams output to the text area."""
         if self._installer_thread and self._installer_thread.isRunning():
             return
-        self._output.appendPlainText('\n--- {} ---'.format(label))
+        self._output.appendPlainText('\n--- {} ---')
         self._output.appendPlainText('$ ' + ' '.join(cmd_parts))
         self._output.appendPlainText('')
         # Disable all buttons while install runs
@@ -805,6 +817,27 @@ class ConfigWidget(QWidget):
         cache_form.addRow(btn_clear)
         opt_layout.addWidget(cache_grp)
 
+        fields_grp = QGroupBox('Default Fields to Apply')
+        fields_form = QFormLayout(fields_grp)
+        self.apply_cbs = {}
+        fields_list = [
+            ('title', 'Title'), ('authors', 'Authors'), ('publisher', 'Publisher'),
+            ('pubdate', 'Publication Date'), ('comments', 'Description'),
+            ('tags', 'Tags'), ('rating', 'Rating'), ('language', 'Language'),
+            ('identifiers', 'Identifiers'), ('cover', 'Cover')
+        ]
+        for key, label in fields_list:
+            cb = QCheckBox(label)
+            cb.setChecked(prefs.get('apply_' + key, True))
+            self.apply_cbs['apply_' + key] = cb
+            fields_form.addRow(cb)
+            
+        self.cb_hide_empty = QCheckBox('Hide results missing all checked fields')
+        self.cb_hide_empty.setChecked(prefs.get('hide_empty_results', False))
+        fields_form.addRow(self.cb_hide_empty)
+        
+        opt_layout.addWidget(fields_grp)
+
         browser_grp = QGroupBox(tr('grp_browser_fallback'))
         browser_form = QFormLayout(browser_grp)
         self.cb_browser_fallback = QCheckBox(tr('cb_browser_fallback'))
@@ -902,3 +935,7 @@ class ConfigWidget(QWidget):
         prefs['amazon_direct_only']      = self.cb_amazon_direct_only.isChecked()
         prefs['browser_timeout']         = self.spin_browser_timeout.value()
         prefs['log_level']               = self.combo_log.currentText()
+        
+        for key, cb in self.apply_cbs.items():
+            prefs[key] = cb.isChecked()
+        prefs['hide_empty_results'] = self.cb_hide_empty.isChecked()

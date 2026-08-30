@@ -594,8 +594,11 @@ class BookResultPanel(QGroupBox):
         self._build()
 
     def _build(self):
+        from calibre_plugins.metadata_plus.ui.config import prefs
         layout = QVBoxLayout(self)
         if not self.data:
+            if prefs.get('hide_empty_results', False):
+                self.setVisible(False)
             layout.addWidget(QLabel(
                 '<i>No metadata found from any source.</i><br>'
                 '<small>Check the <b>Log</b> tab above for per-source errors '
@@ -617,7 +620,7 @@ class BookResultPanel(QGroupBox):
         if cover_candidates:
             cover_row = QHBoxLayout()
             self.cover_cb = QCheckBox()
-            self.cover_cb.setChecked(True)
+            self.cover_cb.setChecked(prefs.get('apply_cover', True))
             cover_row.addWidget(self.cover_cb)
 
             lbl_key = QLabel('<b>{}</b>'.format(tr('field_cover')))
@@ -662,7 +665,7 @@ class BookResultPanel(QGroupBox):
                 display = str(val)
 
             cb = QCheckBox()
-            cb.setChecked(True)
+            cb.setChecked(prefs.get('apply_' + key, True))
             lbl_key = QLabel('<b>{}</b>'.format(label))
             lbl_key.setFixedWidth(100)
             lbl_val = QLabel(display[:300] + ('…' if len(display) > 300 else ''))
@@ -908,6 +911,20 @@ class MetadataFetchDialog(QDialog):
         self.status_lbl.setText(msg)
 
     def _on_book_done(self, book_id, mi, data):
+        from calibre_plugins.metadata_plus.ui.config import prefs
+        
+        if data and prefs.get('hide_empty_results', False):
+            has_requested = False
+            for k in ['title', 'authors', 'publisher', 'pubdate', 'comments', 'tags', 'rating', 'language', 'identifiers']:
+                if prefs.get('apply_' + k, True) and data.get(k):
+                    has_requested = True
+                    break
+            if not has_requested and prefs.get('apply_cover', True) and data.get('cover_url'):
+                has_requested = True
+            
+            if not has_requested:
+                data = None
+                
         # Remove trailing stretch
         count = self.results_layout.count()
         last  = self.results_layout.itemAt(count - 1)
