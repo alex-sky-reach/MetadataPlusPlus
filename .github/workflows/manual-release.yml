@@ -1,0 +1,107 @@
+name: Publish Calibre Plugin Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: metadata-plus-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Package and publish Calibre plugin
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read plugin version and check release tag
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -ne 'refs/heads/main') {
+            throw 'Releases must be run from the main branch.'
+          }
+
+          $init = Get-Content -LiteralPath 'Metadata++/__init__.py' -Raw
+          $match = [regex]::Match($init, '(?m)^\s*version\s*=\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)')
+          if (-not $match.Success) {
+            throw 'Could not find the Calibre plugin version in Metadata++/__init__.py.'
+          }
+
+          $version = "$($match.Groups[1].Value).$($match.Groups[2].Value).$($match.Groups[3].Value)"
+          $tag = "v$version"
+          $zip = "Public Releases/$version/Metadata++_$version.zip"
+
+          $existingTag = git ls-remote --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not check for an existing remote tag: $tag"
+          }
+          if ($existingTag) {
+            throw "Tag $tag already exists. Bump the version in Metadata++/__init__.py before publishing again."
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          Write-Host "Publishing Metadata++ v$version ($tag)"
+
+      - name: Build Calibre-installable ZIP
+        shell: pwsh
+        run: ./Create_Public_Release.ps1
+
+      - name: Validate ZIP layout
+        shell: pwsh
+        env:
+          RELEASE_ZIP: ${{ steps.version.outputs.zip }}
+        run: |
+          $zipPath = $env:RELEASE_ZIP
+          if (-not (Test-Path -LiteralPath $zipPath -PathType Leaf)) {
+            throw "Expected release ZIP was not created: $zipPath"
+          }
+
+          try {
+            Add-Type -AssemblyName System.IO.Compression.ZipFile -ErrorAction Stop
+          }
+          catch {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+          }
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $zipPath).Path)
+          try {
+            $entries = @($archive.Entries | ForEach-Object { $_.FullName })
+            foreach ($required in @('__init__.py', 'action.py', 'plugin-import-name-metadata_plus.txt')) {
+              if ($entries -cnotcontains $required) {
+                throw "Calibre plugin ZIP is missing a root-level file: $required"
+              }
+            }
+            if (@($entries | Where-Object { $_ -match '^(Metadata\+\+/|__pycache__/)' }).Count -gt 0) {
+              throw 'The ZIP must contain plugin files at the archive root, without an enclosing directory.'
+            }
+            Write-Host "Validated $($entries.Count) ZIP entries in $zipPath"
+          }
+          finally {
+            $archive.Dispose()
+          }
+
+      - name: Publish GitHub release as latest
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_ZIP: ${{ steps.version.outputs.zip }}
+        run: |
+          gh release create "$env:RELEASE_TAG" "$env:RELEASE_ZIP" `
+            --title "Metadata++ v$env:RELEASE_VERSION" `
+            --generate-notes `
+            --latest `
+            --target "$env:GITHUB_SHA"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to publish the GitHub release for $env:RELEASE_TAG"
+          }

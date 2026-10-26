@@ -71,7 +71,7 @@ The goal of this project is simple:
 
 # Installation
 
-Download the latest release.
+Download the **Calibre plugin ZIP** from the [latest Metadata++ release](https://github.com/alex-sky-reach/MetadataPlusPlus/releases/latest). Choose the `Metadata++_<version>.zip` asset, not GitHub's automatically generated source-code ZIP.
 
 Inside Calibre:
 
@@ -84,7 +84,7 @@ Preferences
 Select
 
 ```
-Metadata++.zip
+Metadata++_<version>.zip
 ```
 
 Restart Calibre.

@@ -14,6 +14,11 @@
 !Create_Dev_Build.ps1
 !Create_Public_Release.ps1
 
+# Track manually triggered GitHub Actions workflows
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+
 # Track the plugin source
 !Metadata++/
 !Metadata++/**
