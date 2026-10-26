@@ -1,3 +1,19 @@
+Calibre API compatibility & provider crash resilience — v6.2.36
+New in v6.2.36:
+  - BUG FIX: Guard against TypeError when normalizing publisher, language, and
+    publication date from Open Library and Internet Archive responses that return
+    lists/sequences instead of plain strings.
+  - BUG FIX: Handle Calibre Cache.get_metadata() / cover() API differences
+    gracefully to avoid TypeError: get_metadata() got an unexpected keyword
+    argument 'index_is_id'.
+  - BUG FIX: Prevent crash/segfault on dialog closure or cancellation by
+    properly terminating background fetch workers and disconnecting Qt signals
+    in reject() and closeEvent().
+  - BUG FIX: Detect invalid Gemini/AI Studio API keys passed to Google Books
+    API and fall back cleanly to keyless requests instead of raising HTTP 401.
+  - BUG FIX: Resolve undefined variable and missing import (_target_lang and
+    normalize_language) in Open Library provider fetch.
+
 Firefox worker cleanup after metadata runs — v6.2.35
 New in v6.2.35:
   - BUG FIX: Close the reusable Playwright/Firefox worker when a metadata

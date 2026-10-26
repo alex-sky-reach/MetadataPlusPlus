@@ -136,6 +136,12 @@ _LANG_MAP = {
 def normalize_language(lang_raw):
     if not lang_raw:
         return ''
+    if isinstance(lang_raw, (list, tuple, set)):
+        lang_raw = next((str(item) for item in lang_raw if item), '')
+    elif not isinstance(lang_raw, str):
+        lang_raw = str(lang_raw)
+    if not lang_raw:
+        return ''
     key = lang_raw.lower().strip()
     return _LANG_MAP.get(key, key[:2] if len(key) >= 2 else key)
 
@@ -143,6 +149,12 @@ def normalize_language(lang_raw):
 # ── Publisher normalization ───────────────────────────────────────────────────
 
 def normalize_publisher(pub):
+    if not pub:
+        return ''
+    if isinstance(pub, (list, tuple, set)):
+        pub = ', '.join(str(p) for p in pub if p)
+    elif not isinstance(pub, str):
+        pub = str(pub)
     if not pub:
         return ''
     # Strip common suffixes
@@ -159,7 +171,13 @@ def normalize_pubdate(raw):
     """Try to return a YYYY-MM-DD or YYYY string."""
     if not raw:
         return ''
+    if isinstance(raw, (list, tuple, set)):
+        raw = next((str(item) for item in raw if item), '')
+    elif not isinstance(raw, str):
+        raw = str(raw)
     raw = raw.strip()
+    if not raw:
+        return ''
     # Already YYYY-MM-DD
     if re.match(r'^\d{4}-\d{2}-\d{2}$', raw):
         return raw

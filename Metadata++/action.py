@@ -105,6 +105,12 @@ class MetadataPlusAction(InterfaceAction):
     def _refresh_gui(self):
         self.gui.library_view.model().refresh()
         self.gui.tags_view.recount()
+        if hasattr(self.gui, 'current_db') and hasattr(self.gui.current_db, 'clean'):
+            self.gui.current_db.clean()
+        if hasattr(self.gui, 'book_details'):
+            self.gui.book_details.update_details(self.gui.library_view.currentIndex())
+        if hasattr(self.gui, 'cover_flow'):
+            self.gui.cover_flow.dataChanged()
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -140,7 +146,10 @@ class MetadataPlusAction(InterfaceAction):
         db = self.gui.current_db
         repaired = skipped = 0
         for book_id in ids:
-            mi   = db.get_metadata(book_id, index_is_id=True)
+            try:
+                mi = db.get_metadata(book_id, index_is_id=True)
+            except TypeError:
+                mi = db.get_metadata(book_id)
             isbn = (mi.identifiers or {}).get('isbn', '')
             if not isbn:
                 skipped += 1

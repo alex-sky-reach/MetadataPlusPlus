@@ -217,7 +217,7 @@ except ImportError:
     from urllib2 import urlopen, Request, URLError, HTTPError # type: ignore
     from urllib import urlencode, quote_plus # type: ignore
 
-from calibre_plugins.metadata_plus.core.fuzzy import similarity, normalize_str  # type: ignore
+from calibre_plugins.metadata_plus.core.fuzzy import similarity, normalize_str, normalize_language  # type: ignore
 from calibre_plugins.metadata_plus.core.isbn_utils import isbn13_to_10  # type: ignore
 
 # ── Browser fallback (Playwright/Firefox) ─────────────────────────────────────
@@ -1466,6 +1466,15 @@ def fetch_google(title, author, isbn, asin='', lang='', timeout=20, retries=2, l
     except Exception:
         pass
 
+    if api_key and (api_key.startswith('AQ.') or not api_key.startswith('AIza')):
+        if log:
+            log.warning(
+                'Google Books: configured google_api_key appears to be a Google Gemini / AI Studio key '
+                'or invalid key, not a Google Books Cloud Console API key (expected AIza...). '
+                'Using keyless request instead.'
+            )
+        api_key = ''
+
     queries = []
     if isbn:
         queries.append('isbn:{}'.format(isbn))
@@ -1490,6 +1499,9 @@ def fetch_google(title, author, isbn, asin='', lang='', timeout=20, retries=2, l
         if api_key:
             url += '&key={}'.format(quote_plus(api_key))
         data = _jget(url, timeout, retries, log)
+        if (not data or not data.get('items')) and api_key:
+            url_nokey = 'https://www.googleapis.com/books/v1/volumes?q={}&maxResults=10&printType=books'.format(q)
+            data = _jget(url_nokey, timeout, retries, log)
         if not data or not data.get('items'):
             continue
 
@@ -1723,6 +1735,13 @@ def fetch_openlibrary(title, author, isbn, asin='', lang='', timeout=20, retries
                 elif isinstance(fs, str):
                     comments = fs
 
+            _target_lang = (lang or '').lower()[:2]
+            ol_langs = doc.get('language', [])
+            if _target_lang:
+                ol_lang = next((l for l in ol_langs if normalize_language(l) == _target_lang), '') or (ol_langs[0] if ol_langs else '')
+            else:
+                ol_lang = next((l for l in ol_langs if normalize_language(l) == 'en'), '') or (ol_langs[0] if ol_langs else '')
+
             return {
                 'title':       doc.get('title', ''),
                 'authors':     doc.get('author_name', []),
@@ -1730,7 +1749,7 @@ def fetch_openlibrary(title, author, isbn, asin='', lang='', timeout=20, retries
                 'pubdate':     str(doc.get('first_publish_year', '')),
                 'comments':    comments,
                 'tags':        doc.get('subject', [])[:15],
-                'language':    (doc.get('language', [''])[0] if doc.get('language') else ''),
+                'language':    ol_lang,
                 'identifiers': idents,
                 'cover_url':   covers[0] if covers else '',
                 'cover_alts':  covers[1:],
@@ -2215,14 +2234,19 @@ def fetch_internetarchive(title, author, isbn, asin='', lang='', timeout=20, ret
     if asin:
         id_dict['amazon'] = asin
 
+    pub = doc.get('publisher', '')
+    if isinstance(pub, list): pub = ', '.join(str(p) for p in pub if p)
+    lang_val = doc.get('language', '')
+    if isinstance(lang_val, list): lang_val = lang_val[0] if lang_val else ''
+
     return {
         'title':       doc.get('title', ''),
         'authors':     creators,
-        'publisher':   doc.get('publisher', ''),
+        'publisher':   pub or '',
         'pubdate':     str(doc.get('date', '')),
         'comments':    comments,
         'tags':        subjects[:15],
-        'language':    doc.get('language', ''),
+        'language':    lang_val or '',
         'identifiers': id_dict,
         'cover_url':   cover_url,
         'cover_alts':  cover_alts,

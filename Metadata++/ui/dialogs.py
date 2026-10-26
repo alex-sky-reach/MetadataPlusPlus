@@ -29,6 +29,34 @@ except Exception:
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 
 
+def _safe_get_metadata(db, book_id, **kwargs):
+    try:
+        return db.get_metadata(book_id, index_is_id=True, **kwargs)
+    except TypeError:
+        return db.get_metadata(book_id, **kwargs)
+
+
+def _safe_cover(db, book_id, **kwargs):
+    try:
+        return db.cover(book_id, index_is_id=True, **kwargs)
+    except TypeError:
+        return db.cover(book_id, **kwargs)
+
+
+def _safe_formats(db, book_id, **kwargs):
+    try:
+        return db.formats(book_id, index_is_id=True, **kwargs)
+    except TypeError:
+        return db.formats(book_id, **kwargs)
+
+
+def _safe_format_abspath(db, book_id, fmt, **kwargs):
+    try:
+        return db.format_abspath(book_id, fmt, index_is_id=True, **kwargs)
+    except TypeError:
+        return db.format_abspath(book_id, fmt, **kwargs)
+
+
 # ── GUI log handler ────────────────────────────────────────────────────────────
 
 class _QtLogSignaller(QObject):
@@ -96,10 +124,6 @@ class FetchWorker(QThread):
 
     def run(self):
         from calibre_plugins.metadata_plus.engine.fetch_engine import fetch_for_book  # type: ignore
-        try:
-            from calibre_plugins.metadata_plus.providers.browser_fetch import browser_close  # type: ignore
-        except Exception:
-            browser_close = None
 
         # Install our GUI handler onto the plugin logger for the duration
         # of this worker's run so every log.* call inside fetch_engine
@@ -126,7 +150,7 @@ class FetchWorker(QThread):
                 )
                 break
 
-            mi    = self.db.get_metadata(book_id, index_is_id=True)
+            mi    = _safe_get_metadata(self.db, book_id)
             title = mi.title or 'Unknown'
 
             self.progress.emit(
@@ -191,12 +215,6 @@ class FetchWorker(QThread):
         )
 
         # Remove our handler so it doesn't accumulate on reruns
-        if browser_close is not None:
-            try:
-                browser_close()
-            except Exception:
-                pass
-
         plugin_log.removeHandler(gui_handler)
         self.finished.emit()
 
@@ -722,13 +740,13 @@ class BookResultPanel(QGroupBox):
         if not self.db:
             return b''
         try:
-            mi = self.db.get_metadata(self.book_id, index_is_id=True, get_cover=True)
+            mi = _safe_get_metadata(self.db, self.book_id, get_cover=True)
             if mi.cover_data and len(mi.cover_data) >= 2 and mi.cover_data[1]:
                 return mi.cover_data[1]
         except Exception:
             pass
         try:
-            result = self.db.cover(self.book_id, index_is_id=True)
+            result = _safe_cover(self.db, self.book_id)
             if result is None:
                 return b''
             if hasattr(result, 'read'):
@@ -999,8 +1017,8 @@ class MetadataFetchDialog(QDialog):
             # Primary path: get_metadata with get_cover=True — works on all
             # Calibre versions and returns raw bytes in mi.cover_data[1].
             try:
-                mi = self.db.get_metadata(book_id, index_is_id=True,
-                                          get_cover=True)
+                mi = _safe_get_metadata(self.db, book_id,
+                                        get_cover=True)
                 if mi.cover_data and len(mi.cover_data) >= 2:
                     raw = mi.cover_data[1]
             except Exception:
@@ -1010,7 +1028,7 @@ class MetadataFetchDialog(QDialog):
             # and bytes (new API) returns.
             if not raw:
                 try:
-                    result = self.db.cover(book_id, index_is_id=True)
+                    result = _safe_cover(self.db, book_id)
                     if result is None:
                         return (0, 0)
                     if hasattr(result, 'read'):
@@ -1137,7 +1155,7 @@ class MetadataFetchDialog(QDialog):
             # fall through to the cover section.
             sel = panel.get_selected() or {}
             if sel:
-                mi = self.db.get_metadata(panel.book_id, index_is_id=True)
+                mi = _safe_get_metadata(self.db, panel.book_id)
 
                 if sel.get('title'):      mi.title     = sel['title']
                 if sel.get('authors'):    mi.authors   = list(sel['authors'])
@@ -1155,11 +1173,11 @@ class MetadataFetchDialog(QDialog):
                             tags = list(sel['tags']) if sel.get('tags') else list(mi.tags or [])
                             word_count = None
                             try:
-                                fmts = self.db.formats(panel.book_id, index_is_id=True) or ''
+                                fmts = _safe_formats(self.db, panel.book_id) or ''
                                 fmts = [f.strip().upper() for f in fmts.split(',') if f.strip()]
                                 if 'EPUB' in fmts:
-                                    epub_path = self.db.format_abspath(
-                                        panel.book_id, 'EPUB', index_is_id=True)
+                                    epub_path = _safe_format_abspath(
+                                        self.db, panel.book_id, 'EPUB')
                                     if epub_path:
                                         word_count = get_word_count_from_epub(epub_path)
                             except Exception:
@@ -1291,7 +1309,7 @@ class MetadataFetchDialog(QDialog):
         )
         self.accept()
 
-    def _cancel(self):
+    def _cancel_worker(self):
         if hasattr(self, 'worker') and self.worker.isRunning():
             # Signal the worker to stop processing new books
             self.worker.abort()
@@ -1320,7 +1338,18 @@ class MetadataFetchDialog(QDialog):
             browser_close()
         except Exception:
             pass
+
+    def _cancel(self):
+        self._cancel_worker()
         self.reject()
+
+    def reject(self):
+        self._cancel_worker()
+        QDialog.reject(self)
+
+    def closeEvent(self, ev):
+        self._cancel_worker()
+        QDialog.closeEvent(self, ev)
 
 
 # ── Duplicate report dialog ────────────────────────────────────────────────────
@@ -1338,8 +1367,8 @@ class DuplicateDialog(QDialog):
             browser = QTextBrowser()
             lines = []
             for id1, id2 in dupes:
-                mi1 = db.get_metadata(id1, index_is_id=True)
-                mi2 = db.get_metadata(id2, index_is_id=True)
+                mi1 = _safe_get_metadata(db, id1)
+                mi2 = _safe_get_metadata(db, id2)
                 lines.append(
                     '• <b>{}</b> / <i>{}</i><br>'
                     '  &nbsp;&nbsp;vs<br>'

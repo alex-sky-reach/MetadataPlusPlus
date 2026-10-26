@@ -1113,7 +1113,10 @@ def fetch_for_book(db, book_id):
     reset_amazon_search_cooldown()
     reset_google_cooldown()
 
-    mi     = db.get_metadata(book_id, index_is_id=True)
+    try:
+        mi = db.get_metadata(book_id, index_is_id=True)
+    except TypeError:
+        mi = db.get_metadata(book_id)
     title  = mi.title or ''
     author = ', '.join(mi.authors) if mi.authors else ''
     idents = mi.identifiers or {}
@@ -1303,7 +1306,10 @@ def detect_duplicates_in_library(db, book_ids):
     """Return list of (id1, id2) pairs that look like duplicates."""
     if not prefs.get('detect_duplicates', True):
         return []
-    metas = [(bid, db.get_metadata(bid, index_is_id=True)) for bid in book_ids]
+    try:
+        metas = [(bid, db.get_metadata(bid, index_is_id=True)) for bid in book_ids]
+    except TypeError:
+        metas = [(bid, db.get_metadata(bid)) for bid in book_ids]
     dupes = []
     seen  = set()
     for i, (id1, mi1) in enumerate(metas):

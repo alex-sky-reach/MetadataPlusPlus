@@ -23,7 +23,7 @@ class MetadataPlusPlugin(InterfaceActionBase):
     )
     supported_platforms     = ['windows', 'osx', 'linux']
     author                  = 'Metadata+ Plugin'
-    version                 = (6, 2, 34)
+    version                 = (6, 2, 36)
     minimum_calibre_version = (5, 0, 0)
 
     #: Must match: calibre_plugins.<import-name-from-txt-file>.action:ClassName
